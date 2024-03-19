@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  introlabs:
+    image: khulnasoft/introlabs
+    container_name: introlabs
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/root/introlabs
+    ports:
+      - 22:22
