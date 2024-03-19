@@ -52,8 +52,6 @@ class AllTools(IntroLabsCollection):
     TITLE = "All tools"
     TOOLS = all_tools
 
-    def show_info(self):
-
 
 if __name__ == "__main__":
     try:
