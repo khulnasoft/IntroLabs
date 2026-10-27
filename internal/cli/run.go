@@ -3,7 +3,9 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/labkit-project/vulnerable-lab-platform/internal/generator"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +22,27 @@ var runCmd = &cobra.Command{
 func runLab(labID string) {
 	if lifecycleMgr == nil {
 		exitWithError("lifecycle manager not initialized", nil)
+	}
+
+	// Resolve the template path and check verification state
+	templatePath := resolveTemplatePath(labID)
+	if templatePath == "" {
+		exitWithError(fmt.Sprintf("template not found: %s", labID), nil)
+	}
+
+	ml, err := manifestLoader.Load(filepath.Join(templatePath, "lab.yaml"))
+	if err != nil {
+		exitWithError(fmt.Sprintf("failed to load manifest: %v", err), nil)
+	}
+
+	stateStr := string(ml.CoverageState)
+	if ml.Metadata.Verification != nil && ml.Metadata.Verification.Status != "" {
+		stateStr = ml.Metadata.Verification.Status
+	}
+	state := generator.TemplateState(stateStr)
+
+	if !state.IsRunnable() {
+		exitWithError(fmt.Sprintf("template is in state %q and is not runnable; it must be verified before launching", state), nil)
 	}
 
 	result, err := lifecycleMgr.Run(labID)
@@ -47,4 +70,19 @@ func runLab(labID string) {
 	fmt.Printf("Use 'labctl stop %s' to stop the environment.\n", result.LabID)
 
 	os.Stdout.Sync()
+}
+
+func resolveTemplatePath(labID string) string {
+	candidates := []string{
+		labID,
+		filepath.Join("templates", "web", labID),
+		filepath.Join("templates", "api", labID),
+		filepath.Join("templates", labID),
+	}
+	for _, c := range candidates {
+		if fileExistsShared(c + "/lab.yaml") {
+			return c
+		}
+	}
+	return ""
 }

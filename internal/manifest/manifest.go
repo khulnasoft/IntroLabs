@@ -34,20 +34,53 @@ type Manifest struct {
 
 // Metadata describes the lab.
 type Metadata struct {
-	ID               string   `yaml:"id"`
-	Name             string   `yaml:"name"`
-	Version          string   `yaml:"version"`
-	Description      string   `yaml:"description"`
-	Category         string   `yaml:"category"`
-	Difficulty       string   `yaml:"difficulty"`
-	License          string   `yaml:"license"`
-	Author           string   `yaml:"author,omitempty"`
-	Tags             []string `yaml:"tags,omitempty"`
-	CVE              string   `yaml:"cve,omitempty"`
-	Vendor           string   `yaml:"vendor,omitempty"`
-	Product          string   `yaml:"product,omitempty"`
-	AffectedVersions []string `yaml:"affected_versions,omitempty"`
-	FixedVersions    []string `yaml:"fixed_versions,omitempty"`
+	ID               string                `yaml:"id"`
+	Name             string                `yaml:"name"`
+	Version          string                `yaml:"version"`
+	Description      string                `yaml:"description"`
+	Category         string                `yaml:"category"`
+	Difficulty       string                `yaml:"difficulty"`
+	License          string                `yaml:"license"`
+	Author           string                `yaml:"author,omitempty"`
+	Tags             []string              `yaml:"tags,omitempty"`
+	CVE              string                `yaml:"cve,omitempty"`
+	Vendor           string                `yaml:"vendor,omitempty"`
+	Product          string                `yaml:"product,omitempty"`
+	AffectedVersions []string              `yaml:"affected_versions,omitempty"`
+	FixedVersions    []string              `yaml:"fixed_versions,omitempty"`
+	Source           *Source               `yaml:"source,omitempty" json:"source,omitempty"`
+	Reproduction     *Reproduction         `yaml:"reproduction,omitempty" json:"reproduction,omitempty"`
+	Verification     *TemplateVerification `yaml:"verification,omitempty" json:"verification,omitempty"`
+	Review           *Review               `yaml:"review,omitempty" json:"review,omitempty"`
+}
+
+// Source describes the provenance of CVE metadata.
+type Source struct {
+	CVE      string `yaml:"cve,omitempty" json:"cve,omitempty"`
+	Advisory string `yaml:"advisory,omitempty" json:"advisory,omitempty"`
+	Upstream string `yaml:"upstream,omitempty" json:"upstream,omitempty"`
+}
+
+// Reproduction describes reproduction requirements and confidence.
+type Reproduction struct {
+	Requirements []string `yaml:"requirements,omitempty" json:"requirements,omitempty"`
+	Confidence   string   `yaml:"confidence,omitempty" json:"confidence,omitempty"`
+	Notes        string   `yaml:"notes,omitempty" json:"notes,omitempty"`
+}
+
+// TemplateVerification describes verification status and evidence for template lifecycle.
+type TemplateVerification struct {
+	Status   string   `yaml:"status,omitempty" json:"status,omitempty"`
+	Evidence []string `yaml:"evidence,omitempty" json:"evidence,omitempty"`
+	Checks   []string `yaml:"checks,omitempty" json:"checks,omitempty"`
+}
+
+// Review describes publishing review metadata.
+type Review struct {
+	Approved  bool   `yaml:"approved,omitempty" json:"approved,omitempty"`
+	Reviewer  string `yaml:"reviewer,omitempty" json:"reviewer,omitempty"`
+	Timestamp string `yaml:"timestamp,omitempty" json:"timestamp,omitempty"`
+	Notes     string `yaml:"notes,omitempty" json:"notes,omitempty"`
 }
 
 // CoverageState tracks catalog coverage for a lab environment.

@@ -16,6 +16,7 @@ type Generator struct {
 	scaffolder *ScaffoldGenerator
 	verifier   *Verifier
 	packer     *Packager
+	catalog    *Catalog
 	rootDir    string
 }
 
@@ -35,6 +36,7 @@ func NewGenerator(rootDir string) *Generator {
 		scaffolder: NewScaffoldGenerator(rootDir),
 		verifier:   NewVerifier(ml, pv),
 		packer:     NewPackager(),
+		catalog:    NewCatalog(ResolveCatalogPath(rootDir)),
 		rootDir:    rootDir,
 	}
 }
@@ -94,7 +96,7 @@ func (g *Generator) PackageTemplate(templatePath, version string) (*PackageResul
 
 // WriteCatalogEntry adds a catalog entry for a published template.
 func (g *Generator) WriteCatalogEntry(catalogPath string, entry CatalogEntry) error {
-	return g.packer.WriteCatalogEntry(catalogPath, entry)
+	return g.catalog.WriteCatalogEntry(entry)
 }
 
 // EnsureDirExists checks that a directory exists.

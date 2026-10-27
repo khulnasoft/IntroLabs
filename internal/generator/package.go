@@ -8,10 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
-
-	"gopkg.in/yaml.v3"
 )
 
 // Packager builds versioned archives and catalog entries for generated templates.
@@ -73,59 +69,6 @@ func (p *Packager) Package(templatePath string, version string) (*PackageResult,
 		Checksum:     checksum,
 		Size:         archiveInfo.Size(),
 	}, nil
-}
-
-// CatalogEntry is a catalog index entry for a published template.
-type CatalogEntry struct {
-	CVEID              string    `yaml:"cve_id"`
-	TemplateID         string    `yaml:"template_id"`
-	Version            string    `yaml:"version"`
-	Technology         string    `yaml:"technology"`
-	AffectedComponent  string    `yaml:"affected_component"`
-	Category           string    `yaml:"category"`
-	Difficulty         string    `yaml:"difficulty"`
-	VerificationStatus string    `yaml:"verification_status"`
-	PublishedAt        time.Time `yaml:"published_at"`
-	Checksum           string    `yaml:"checksum"`
-	Archive            string    `yaml:"archive"`
-}
-
-// WriteCatalogEntry appends/replaces an entry in catalog/index.yaml.
-func (p *Packager) WriteCatalogEntry(catalogPath string, entry CatalogEntry) error {
-	data, err := os.ReadFile(catalogPath)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("reading catalog: %w", err)
-	}
-
-	var existing []CatalogEntry
-	if len(data) > 0 {
-		if err := yaml.Unmarshal(data, &existing); err != nil {
-			return fmt.Errorf("parsing catalog: %w", err)
-		}
-	}
-
-	// Replace existing entry with same template_id
-	found := false
-	for i, e := range existing {
-		if e.TemplateID == entry.TemplateID {
-			existing[i] = entry
-			found = true
-			break
-		}
-	}
-	if !found {
-		existing = append(existing, entry)
-	}
-
-	out, err := yaml.Marshal(existing)
-	if err != nil {
-		return fmt.Errorf("marshaling catalog: %w", err)
-	}
-
-	if err := os.WriteFile(catalogPath, out, 0o644); err != nil {
-		return fmt.Errorf("writing catalog: %w", err)
-	}
-	return nil
 }
 
 // createTarGz creates a gzipped tar archive of srcDir at dstPath.
@@ -196,15 +139,4 @@ func sha256File(path string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
-}
-
-// NormalizeTemplateID converts a filesystem path to a catalog template ID.
-func NormalizeTemplateID(path string) string {
-	base := filepath.Base(path)
-	// web/cve-2026-34486 -> web/cve-2026-34486 (already in category/name form)
-	// If just a name, prefix with web/
-	if !strings.Contains(base, "/") {
-		return "web/" + base
-	}
-	return base
 }

@@ -122,6 +122,97 @@
             "type": "string"
           },
           "description": "Versions containing the fix"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source provenance for CVE-driven labs",
+          "properties": {
+            "cve": {
+              "type": "string",
+              "pattern": "^CVE-\\d{4}-\\d{4,}$",
+              "description": "CVE identifier from the source advisory"
+            },
+            "advisory": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL to the source advisory"
+            },
+            "upstream": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL to the upstream project or repository"
+            }
+          }
+        },
+        "reproduction": {
+          "type": "object",
+          "description": "Reproduction requirements and confidence for CVE-driven labs",
+          "properties": {
+            "requirements": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Requirements needed to reproduce the vulnerability"
+            },
+            "confidence": {
+              "type": "string",
+              "enum": ["low", "medium", "high"],
+              "description": "Confidence level that the vulnerability can be reproduced"
+            },
+            "notes": {
+              "type": "string",
+              "description": "Additional reproduction notes"
+            }
+          }
+        },
+        "verification": {
+          "type": "object",
+          "description": "Verification status and evidence for CVE-driven labs",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["draft", "metadata-only", "needs-verification", "verified", "published", "deprecated"],
+              "description": "Current verification lifecycle state"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of evidence references supporting verification"
+            },
+            "checks": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of validation checks that have passed"
+            }
+          }
+        },
+        "review": {
+          "type": "object",
+          "description": "Review metadata for publishing approval",
+          "properties": {
+            "approved": {
+              "type": "boolean",
+              "description": "Whether the lab has been approved for publishing"
+            },
+            "reviewer": {
+              "type": "string",
+              "description": "Person or system that reviewed the lab"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When the review was performed"
+            },
+            "notes": {
+              "type": "string",
+              "description": "Review notes and rationale"
+            }
+          }
         }
       }
     },
