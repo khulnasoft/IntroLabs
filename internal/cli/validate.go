@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -148,7 +149,7 @@ func validateTemplate(templatePath string) {
 					fmt.Printf("    ✓ coverage_state: %s\n", labManifest.CoverageState)
 				}
 
-				// Validate severity vector consistency
+				// Validate severity vector consistency (calculates score from vector)
 				if labManifest.Vulnerability != nil && labManifest.Vulnerability.Severity != "" {
 					cvssOK, cvssMsg := validateCVSSVector(labManifest.Vulnerability.Severity)
 					if !cvssOK {
@@ -321,9 +322,33 @@ func validateTemplate(templatePath string) {
 	}
 }
 
-// validateCVSSVector checks that a severity string contains a valid CVSS v3.1
-// vector with consistent metrics. It does not compute the exact score but
-// verifies the vector format and that impact metrics use valid values.
+// cvssMetricValues maps CVSS v3.1 metric values to their numerical coefficients.
+var cvssMetricValues = map[string]map[string]float64{
+	"AV": {"N": 0.85, "A": 0.62, "L": 0.55, "P": 0.20},
+	"AC": {"L": 0.77, "H": 0.44},
+	"PR": {"U": 0.85, "N": 0.85, "L": 0.62, "H": 0.27},
+	"UI": {"N": 0.85, "R": 0.62},
+	"C":  {"N": 0.00, "L": 0.22, "H": 0.56},
+	"I":  {"N": 0.00, "L": 0.22, "H": 0.56},
+	"A":  {"N": 0.00, "L": 0.22, "H": 0.56},
+}
+
+// validCVSSMetrics lists the allowed values for each required CVSS v3.1 metric.
+var validCVSSMetrics = map[string][]string{
+	"AV": {"N", "A", "L", "P"},
+	"AC": {"L", "H"},
+	"PR": {"U", "N", "L", "H"},
+	"UI": {"N", "R"},
+	"S":  {"U", "C"},
+	"C":  {"N", "L", "H"},
+	"I":  {"N", "L", "H"},
+	"A":  {"N", "L", "H"},
+}
+
+// validateCVSSVector parses a CVSS v3.1 vector, calculates the base score, and
+// compares it against the declared score. Returns an error if the vector is
+// malformed, uses invalid metric values, or the calculated score mismatches
+// the declared score by more than 0.1.
 func validateCVSSVector(severity string) (bool, string) {
 	// Extract CVSS vector from severity string like "7.5 (CVSS:3.1/AV:N/AC:L/...)"
 	vectorMatch := regexp.MustCompile(`CVSS:3\.1/(.+)\)`).FindStringSubmatch(severity)
@@ -332,6 +357,17 @@ func validateCVSSVector(severity string) (bool, string) {
 	}
 	vector := vectorMatch[1]
 
+	// Extract declared score
+	scoreMatch := regexp.MustCompile(`^([0-9]+(?:\.[0-9]+)?)`).FindStringSubmatch(severity)
+	if len(scoreMatch) < 2 {
+		return false, "severity does not include a numeric score"
+	}
+	declaredScore, err := strconv.ParseFloat(scoreMatch[1], 64)
+	if err != nil {
+		return false, fmt.Sprintf("invalid CVSS score '%s': %v", scoreMatch[1], err)
+	}
+
+	// Parse metrics
 	metrics := make(map[string]string)
 	for _, part := range strings.Split(vector, "/") {
 		kv := strings.SplitN(part, ":", 2)
@@ -340,23 +376,88 @@ func validateCVSSVector(severity string) (bool, string) {
 		}
 	}
 
-	validImpact := map[string]bool{"N": true, "L": true, "H": true}
-	for _, metric := range []string{"C", "I", "A"} {
-		if val, ok := metrics[metric]; ok && !validImpact[val] {
-			return false, fmt.Sprintf("invalid %s impact value '%s' in CVSS vector", metric, val)
+	// Validate all required metrics are present with valid values
+	for metric, validValues := range validCVSSMetrics {
+		val, ok := metrics[metric]
+		if !ok {
+			return false, fmt.Sprintf("missing required CVSS metric '%s'", metric)
+		}
+		valid := false
+		for _, v := range validValues {
+			if val == v {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return false, fmt.Sprintf("invalid %s value '%s' in CVSS vector (valid: %v)", metric, val, validValues)
 		}
 	}
 
-	// Basic score presence check
-	scoreMatch := regexp.MustCompile(`^([0-9]+\.[0-9]+)`).FindStringSubmatch(severity)
-	if len(scoreMatch) < 2 {
-		return false, "severity does not include a numeric score"
-	}
-	if _, err := strconv.ParseFloat(scoreMatch[1], 64); err != nil {
-		return false, fmt.Sprintf("invalid CVSS score '%s': %v", scoreMatch[1], err)
+	// Calculate CVSS v3.1 base score
+	calculatedScore := calculateCVSSBaseScore(metrics)
+
+	// Compare with declared score (tolerance: 0.1 due to rounding)
+	if math.Abs(calculatedScore-declaredScore) > 0.1 {
+		return false, fmt.Sprintf("CVSS score mismatch: declared %.1f, vector calculates %.1f", declaredScore, calculatedScore)
 	}
 
-	return true, "CVSS vector format is valid"
+	return true, fmt.Sprintf("CVSS vector valid (score %.1f)", calculatedScore)
+}
+
+// calculateCVSSBaseScore computes the CVSS v3.1 base score from parsed metrics.
+func calculateCVSSBaseScore(metrics map[string]string) float64 {
+	av := cvssMetricValues["AV"][metrics["AV"]]
+	ac := cvssMetricValues["AC"][metrics["AC"]]
+	ui := cvssMetricValues["UI"][metrics["UI"]]
+	scope := metrics["S"]
+	c := cvssMetricValues["C"][metrics["C"]]
+	i := cvssMetricValues["I"][metrics["I"]]
+	a := cvssMetricValues["A"][metrics["A"]]
+
+	// Impact Sub-Score
+	isc := 1 - ((1 - c) * (1 - i) * (1 - a))
+
+	// Impact
+	var impact float64
+	if scope == "U" {
+		impact = 6.42 * isc
+	} else {
+		impact = 7.52*(isc-0.029) - 3.25*math.Pow(isc-0.02, 15)
+	}
+
+	// Exploitability
+	// PR metric depends on Scope
+	prValue := cvssMetricValues["PR"][metrics["PR"]]
+	if scope == "C" && metrics["PR"] == "U" {
+		prValue = 0.68
+	}
+	exploitability := 8.22 * av * ac * prValue * ui
+
+	// Base Score
+	var baseScore float64
+	if scope == "U" {
+		if impact <= 0 {
+			baseScore = 0
+		} else {
+			baseScore = math.Min(impact+exploitability, 10)
+		}
+	} else {
+		if impact <= 0 {
+			baseScore = 0
+		} else {
+			baseScore = math.Min(1.08*(impact+exploitability), 10)
+		}
+	}
+
+	// Round up to 1 decimal place
+	return roundUp(baseScore, 1)
+}
+
+// roundUp rounds a value up to the specified number of decimal places.
+func roundUp(val float64, places int) float64 {
+	shift := math.Pow(10, float64(places))
+	return math.Ceil(val*shift) / shift
 }
 
 // validateProvenance rejects placeholder or zero-value provenance data.
@@ -413,7 +514,7 @@ func verifyClaimsAgainstCoverage(state manifest.CoverageState, ver *manifest.Ver
 }
 
 // checkEndpointComposeAgreement verifies that declared endpoints match
-// the resolved Compose service configuration.
+// the resolved Compose service configuration, including host binding.
 func checkEndpointComposeAgreement(manifest *manifest.Manifest, project *types.Project) bool {
 	allOK := true
 	for _, ep := range manifest.Endpoints {
@@ -433,6 +534,23 @@ func checkEndpointComposeAgreement(manifest *manifest.Manifest, project *types.P
 		for _, port := range foundService.Ports {
 			if uint32(ep.ContainerPort) == port.Target {
 				found = true
+				// Check host binding agreement
+				hostIP := port.HostIP
+				if hostIP == "" {
+					hostIP = "0.0.0.0" // Docker Compose default
+				}
+				if ep.HostBinding != "" && ep.HostBinding != hostIP && ep.HostBinding != "localhost" {
+					if hostIP == "0.0.0.0" && ep.HostBinding == "127.0.0.1" {
+						fmt.Printf("    ✗ endpoint '%s' declares hostBinding 127.0.0.1 but Compose binds to 0.0.0.0\n", ep.ID)
+						allOK = false
+					} else if hostIP == "127.0.0.1" && ep.HostBinding == "0.0.0.0" {
+						fmt.Printf("    ✗ endpoint '%s' declares hostBinding 0.0.0.0 but Compose binds to 127.0.0.1\n", ep.ID)
+						allOK = false
+					} else if ep.HostBinding != hostIP {
+						fmt.Printf("    ✗ endpoint '%s' declares hostBinding %s but Compose binds to %s\n", ep.ID, ep.HostBinding, hostIP)
+						allOK = false
+					}
+				}
 				break
 			}
 		}
