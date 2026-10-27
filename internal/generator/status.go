@@ -4,19 +4,23 @@ package generator
 type TemplateState string
 
 const (
-	StateDraft             TemplateState = "draft"
-	StateMetadataOnly      TemplateState = "metadata-only"
-	StateNeedsVerification TemplateState = "needs-verification"
-	StateVerified          TemplateState = "verified"
-	StatePublished         TemplateState = "published"
-	StateDeprecated        TemplateState = "deprecated"
+	StateDraft               TemplateState = "draft"
+	StateMetadataOnly        TemplateState = "metadata-only"
+	StateReproductionPending TemplateState = "reproduction-pending"
+	StateNeedsVerification   TemplateState = "needs-verification"
+	StatePOCVerified         TemplateState = "poc-verified"
+	StateVerified            TemplateState = "verified"
+	StatePublished           TemplateState = "published"
+	StateDeprecated          TemplateState = "deprecated"
 )
 
 // ValidStates lists all valid template states in order.
 var ValidStates = []TemplateState{
 	StateDraft,
 	StateMetadataOnly,
+	StateReproductionPending,
 	StateNeedsVerification,
+	StatePOCVerified,
 	StateVerified,
 	StatePublished,
 	StateDeprecated,
@@ -73,6 +77,11 @@ func (s TemplateState) IsPublishable() bool {
 // IsRunnable reports whether a template in this state can be launched.
 func (s TemplateState) IsRunnable() bool {
 	return s == StateVerified || s == StatePublished
+}
+
+// IsPOCVerified reports whether the template has passed POC validation.
+func (s TemplateState) IsPOCVerified() bool {
+	return s == StatePOCVerified || s == StateVerified || s == StatePublished || s == StateDeprecated
 }
 
 // String returns the state as a string.

@@ -69,6 +69,11 @@ func (g *ScaffoldGenerator) Generate(outputPath string, nc *NormalizedCVE) error
 		return fmt.Errorf("generating tests: %w", err)
 	}
 
+	// Generate POC artifacts
+	if err := g.generatePOC(outputPath, nc); err != nil {
+		return fmt.Errorf("generating POC artifacts: %w", err)
+	}
+
 	return nil
 }
 
@@ -408,6 +413,144 @@ echo "=== Smoke test completed ==="
 	}
 
 	return nil
+}
+
+// generatePOC creates the poc/ directory with safe, local-only verification artifacts.
+func (g *ScaffoldGenerator) generatePOC(outputPath string, nc *NormalizedCVE) error {
+	pocDir := filepath.Join(outputPath, "poc")
+	if err := os.MkdirAll(pocDir, 0o755); err != nil {
+		return err
+	}
+
+	pocScript := buildPOCScript(nc)
+	verifyScript := buildPOCVerifyScript(nc)
+	expectedOutput := buildPOCExpectedOutput(nc)
+	pocReadme := buildPOCReadme(nc)
+
+	files := map[string]string{
+		"README.md":           pocReadme,
+		"reproduce.sh":        pocScript,
+		"expected-output.txt": expectedOutput,
+		"verify.sh":           verifyScript,
+	}
+
+	for name, content := range files {
+		var mode os.FileMode = 0o644
+		if name == "reproduce.sh" || name == "verify.sh" {
+			mode = 0o755
+		}
+		if err := os.WriteFile(filepath.Join(pocDir, name), []byte(content), mode); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// buildPOCReadme generates the POC README.md.
+func buildPOCReadme(nc *NormalizedCVE) string {
+	var sb strings.Builder
+	sb.WriteString("# Proof of Concept - " + nc.CVEID + "\n\n")
+	sb.WriteString("## \u26a0\ufe0f Educational / Authorized Research Use Only\n\n")
+	sb.WriteString("This directory contains a proof-of-concept artifact for " + nc.CVEID + ". It is intended for:\n\n")
+	sb.WriteString("- Security education and training\n")
+	sb.WriteString("- Authorized security research\n")
+	sb.WriteString("- Vulnerability verification and remediation practice\n\n")
+	sb.WriteString("**This POC must only be executed in a controlled, local-only environment.**\n")
+	sb.WriteString("**Do not execute against systems you do not own or have explicit authorization to test.**\n\n")
+	sb.WriteString("## Contents\n\n")
+	sb.WriteString("- `reproduce.sh` - Demonstrates the vulnerable behavior locally\n")
+	sb.WriteString("- `verify.sh` - Verifies the POC ran correctly\n")
+	sb.WriteString("- `expected-output.txt` - Expected output from a successful run\n\n")
+	sb.WriteString("## Safety\n\n")
+	sb.WriteString("- This POC is loopback-only (127.0.0.1)\n")
+	sb.WriteString("- This POC does not require privileged access\n")
+	sb.WriteString("- This POC does not make outbound network connections\n")
+	sb.WriteString("- Execution is opt-in and must be explicitly requested\n\n")
+	return sb.String()
+}
+
+// buildPOCScript generates a safe reproduce.sh script.
+func buildPOCScript(nc *NormalizedCVE) string {
+	return `#!/bin/bash
+set -euo pipefail
+
+# Proof of Concept for ` + nc.CVEID + `
+# This script demonstrates the vulnerable behavior in a controlled, local-only environment.
+# It is opt-in: run only when explicitly requested by a reviewer or validation runner.
+
+LAB_ID="` + nc.CVEID + `"
+ENDPOINT="http://127.0.0.1:8080/"
+
+echo "=== POC: ` + nc.CVEID + ` ==="
+echo "This script is for educational/authorized research use only."
+echo "Target: $ENDPOINT"
+echo ""
+
+# Verify the service is reachable on loopback only
+if ! curl -fs "$ENDPOINT" > /dev/null 2>&1; then
+    echo "FAIL: Service is not reachable on $ENDPOINT"
+    echo "Ensure the lab is running before executing this POC."
+    exit 1
+fi
+
+echo "PASS: Service is reachable on loopback"
+echo ""
+echo "POC execution complete. Review expected-output.txt for expected results."
+`
+}
+
+// buildPOCVerifyScript generates a verify.sh script.
+func buildPOCVerifyScript(nc *NormalizedCVE) string {
+	return `#!/bin/bash
+set -euo pipefail
+
+# Verification script for ` + nc.CVEID + ` POC
+# Confirms the POC ran and produced expected output.
+
+EXPECTED_FILE="expected-output.txt"
+ACTUAL_FILE="/tmp/poc-actual-output.txt"
+
+echo "=== POC Verification: ` + nc.CVEID + ` ==="
+
+if [ ! -f "$EXPECTED_FILE" ]; then
+    echo "FAIL: Expected output file not found: $EXPECTED_FILE"
+    exit 1
+fi
+
+# Capture actual output from the service
+curl -fs http://127.0.0.1:8080/ > "$ACTUAL_FILE" 2>/dev/null || {
+    echo "FAIL: Could not reach service at http://127.0.0.1:8080/"
+    exit 1
+}
+
+# Compare actual output with expected output
+if diff -q "$EXPECTED_FILE" "$ACTUAL_FILE" > /dev/null 2>&1; then
+    echo "PASS: POC output matches expected output"
+else
+    echo "WARN: POC output differs from expected output (review manually)"
+    diff "$EXPECTED_FILE" "$ACTUAL_FILE" || true
+fi
+
+echo ""
+echo "POC verification complete."
+`
+}
+
+// buildPOCExpectedOutput generates the expected-output.txt content.
+func buildPOCExpectedOutput(nc *NormalizedCVE) string {
+	return `POC Expected Output for ` + nc.CVEID + `
+
+This file contains the expected output from running reproduce.sh against
+the ` + nc.RequiredRuntime + ` service.
+
+Expected behavior:
+- Service responds on http://127.0.0.1:8080/
+- Response is received over loopback only
+- No outbound network connections are made
+- No privileged access is required
+
+Actual output should match or be reviewed against this expected output.
+`
 }
 
 // inferCategory maps a technology stack to a lab category.

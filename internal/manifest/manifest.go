@@ -52,6 +52,7 @@ type Metadata struct {
 	Reproduction     *Reproduction         `yaml:"reproduction,omitempty" json:"reproduction,omitempty"`
 	Verification     *TemplateVerification `yaml:"verification,omitempty" json:"verification,omitempty"`
 	Review           *Review               `yaml:"review,omitempty" json:"review,omitempty"`
+	POC              *POC                  `yaml:"poc,omitempty" json:"poc,omitempty"`
 }
 
 // Source describes the provenance of CVE metadata.
@@ -81,6 +82,15 @@ type Review struct {
 	Reviewer  string `yaml:"reviewer,omitempty" json:"reviewer,omitempty"`
 	Timestamp string `yaml:"timestamp,omitempty" json:"timestamp,omitempty"`
 	Notes     string `yaml:"notes,omitempty" json:"notes,omitempty"`
+}
+
+// POC describes proof-of-concept artifacts for vulnerability verification.
+type POC struct {
+	Enabled        bool   `yaml:"enabled,omitempty" json:"enabled,omitempty"`
+	Script         string `yaml:"script,omitempty" json:"script,omitempty"`
+	ExpectedOutput string `yaml:"expected_output,omitempty" json:"expected_output,omitempty"`
+	README         string `yaml:"readme,omitempty" json:"readme,omitempty"`
+	VerifyScript   string `yaml:"verify_script,omitempty" json:"verify_script,omitempty"`
 }
 
 // CoverageState tracks catalog coverage for a lab environment.

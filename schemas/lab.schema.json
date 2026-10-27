@@ -213,6 +213,28 @@
               "description": "Review notes and rationale"
             }
           }
+        },
+        "poc": {
+          "type": "object",
+          "description": "Proof-of-concept artifacts for vulnerability verification",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether a POC directory exists for this lab"
+            },
+            "script": {
+              "type": "string",
+              "description": "Path to the POC reproduction script (e.g., poc/reproduce.sh)"
+            },
+            "expected_output": {
+              "type": "string",
+              "description": "Path to the expected output file (e.g., poc/expected-output.txt)"
+            },
+            "verify_script": {
+              "type": "string",
+              "description": "Path to the POC verification script (e.g., poc/verify.sh)"
+            }
+          }
         }
       }
     },

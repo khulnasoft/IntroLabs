@@ -27,15 +27,17 @@ func TestCanTransition(t *testing.T) {
 		want     bool
 	}{
 		{StateDraft, StateMetadataOnly, true},
-		{StateMetadataOnly, StateNeedsVerification, true},
-		{StateNeedsVerification, StateVerified, true},
+		{StateMetadataOnly, StateReproductionPending, true},
+		{StateReproductionPending, StateNeedsVerification, true},
+		{StateNeedsVerification, StatePOCVerified, true},
+		{StatePOCVerified, StateVerified, true},
 		{StateVerified, StatePublished, true},
-		{StateDraft, StateNeedsVerification, false}, // skip
-		{StateDraft, StateVerified, false},          // skip
-		{StateVerified, StateMetadataOnly, false},   // backward
-		{StatePublished, StateVerified, false},      // backward
-		{StateDraft, StateDraft, true},              // idempotent
-		{StateDeprecated, StatePublished, false},    // cannot un-deprecate
+		{StateDraft, StateReproductionPending, false}, // skip
+		{StateDraft, StateVerified, false},            // skip
+		{StateVerified, StateMetadataOnly, false},     // backward
+		{StatePublished, StateVerified, false},        // backward
+		{StateDraft, StateDraft, true},                // idempotent
+		{StateDeprecated, StatePublished, false},      // cannot un-deprecate
 	}
 
 	for _, tc := range tests {
@@ -67,6 +69,15 @@ func TestTemplateStateMethods(t *testing.T) {
 	}
 	if StateDraft.IsRunnable() {
 		t.Error("StateDraft.IsRunnable() = true, want false")
+	}
+	if !StatePOCVerified.IsPOCVerified() {
+		t.Error("StatePOCVerified.IsPOCVerified() = false, want true")
+	}
+	if !StateVerified.IsPOCVerified() {
+		t.Error("StateVerified.IsPOCVerified() = false, want true")
+	}
+	if StateNeedsVerification.IsPOCVerified() {
+		t.Error("StateNeedsVerification.IsPOCVerified() = true, want false")
 	}
 }
 

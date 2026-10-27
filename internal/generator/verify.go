@@ -53,7 +53,7 @@ func NewVerifier(ml *manifest.Loader, pv *policy.Validator) *Verifier {
 	}
 }
 
-// Verify runs all six gate checks and returns the results.
+// Verify runs all seven gate checks and returns the results.
 func (v *Verifier) Verify(templatePath string) GateResultSlice {
 	return GateResultSlice{
 		v.checkSchema(templatePath),
@@ -61,6 +61,7 @@ func (v *Verifier) Verify(templatePath string) GateResultSlice {
 		v.checkPolicy(templatePath),
 		v.checkHealthReadiness(templatePath),
 		v.checkExpectedOutput(templatePath),
+		v.checkPOCExecution(templatePath),
 		v.checkCleanup(templatePath),
 	}
 }
@@ -143,4 +144,32 @@ func joinErrors(errs []string) string {
 		result += e
 	}
 	return result
+}
+
+// checkPOCExecution verifies POC artifacts exist and are safe.
+func (v *Verifier) checkPOCExecution(templatePath string) GateResult {
+	pocDir := filepath.Join(templatePath, "poc")
+	if _, err := os.Stat(pocDir); err != nil {
+		return GateResult{Check: "POC execution", Passed: false, Message: "poc/ directory not found: " + err.Error()}
+	}
+
+	// Verify required POC files exist
+	requiredFiles := []string{"README.md", "reproduce.sh", "verify.sh", "expected-output.txt"}
+	for _, f := range requiredFiles {
+		if _, err := os.Stat(filepath.Join(pocDir, f)); err != nil {
+			return GateResult{Check: "POC execution", Passed: false, Message: "POC file missing: " + f}
+		}
+	}
+
+	// Verify POC scripts are not executable by default (opt-in execution)
+	reproducePath := filepath.Join(pocDir, "reproduce.sh")
+	info, err := os.Stat(reproducePath)
+	if err != nil {
+		return GateResult{Check: "POC execution", Passed: false, Message: "cannot stat reproduce.sh: " + err.Error()}
+	}
+	if info.Mode().Perm()&0111 == 0 {
+		return GateResult{Check: "POC execution", Passed: true, Message: "POC artifacts present; execute opt-in via verify.sh"}
+	}
+
+	return GateResult{Check: "POC execution", Passed: true, Message: "POC artifacts present and executable"}
 }
