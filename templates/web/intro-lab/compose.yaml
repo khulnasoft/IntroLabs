@@ -54,4 +54,4 @@ services:
 networks:
   lab-network:
     driver: bridge
-    internal: false
+    internal: true

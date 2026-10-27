@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/compose-spec/compose-go/loader"
@@ -105,45 +107,102 @@ func validateTemplate(templatePath string) {
 	// Validate lab.yaml against JSON schema
 	fmt.Println("\nValidating lab.yaml manifest...")
 	manifestPath := filepath.Join(templatePath, "lab.yaml")
+	var labManifest *manifest.Manifest
 	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
 		fmt.Printf("  ✗ lab.yaml not found\n")
 		allPassed = false
 	} else {
-		labManifest, err := manifestLoader.Load(manifestPath)
+		loaded, err := manifestLoader.Load(manifestPath)
 		if err != nil {
 			fmt.Printf("  ✗ Manifest validation failed: %v\n", err)
 			allPassed = false
 		} else {
+			labManifest = loaded
 			fmt.Println("  ✓ lab.yaml is valid against schema")
 
 			// CVE-specific validation
 			if labManifest.Metadata.CVE != "" {
 				fmt.Println("\n  Validating CVE catalog fields...")
+				cvePassed := true
+
+				// Required CVE fields
 				if labManifest.Metadata.AffectedVersions == nil || len(labManifest.Metadata.AffectedVersions) == 0 {
 					fmt.Printf("    ✗ CVE specified but affected_versions is empty\n")
 					allPassed = false
+					cvePassed = false
 				} else {
 					fmt.Printf("    ✓ affected_versions declared: %v\n", labManifest.Metadata.AffectedVersions)
 				}
 				if labManifest.Metadata.FixedVersions == nil || len(labManifest.Metadata.FixedVersions) == 0 {
 					fmt.Printf("    ✗ CVE specified but fixed_versions is empty\n")
 					allPassed = false
+					cvePassed = false
 				} else {
 					fmt.Printf("    ✓ fixed_versions declared: %v\n", labManifest.Metadata.FixedVersions)
 				}
 				if labManifest.CoverageState == "" {
 					fmt.Printf("    ✗ coverage_state is not set\n")
 					allPassed = false
+					cvePassed = false
 				} else {
 					fmt.Printf("    ✓ coverage_state: %s\n", labManifest.CoverageState)
 				}
-				if labManifest.CoverageState == manifest.CoveragePublished && labManifest.Vulnerability == nil {
-					fmt.Printf("    ✗ coverage_state is 'published' but vulnerability section is missing\n")
-					allPassed = false
+
+				// Validate severity vector consistency
+				if labManifest.Vulnerability != nil && labManifest.Vulnerability.Severity != "" {
+					cvssOK, cvssMsg := validateCVSSVector(labManifest.Vulnerability.Severity)
+					if !cvssOK {
+						fmt.Printf("    ✗ %s\n", cvssMsg)
+						allPassed = false
+						cvePassed = false
+					} else {
+						fmt.Printf("    ✓ %s\n", cvssMsg)
+					}
+
+					// Validate provenance - required for reproducible/published, optional otherwise
+					if labManifest.Vulnerability.Provenance == nil {
+						if labManifest.CoverageState == manifest.CoveragePublished || labManifest.CoverageState == manifest.CoverageReproducible {
+							fmt.Printf("    ✗ coverage_state is '%s' but vulnerability section missing provenance\n", labManifest.CoverageState)
+							allPassed = false
+							cvePassed = false
+						} else {
+							fmt.Printf("    ✓ provenance not required for '%s' coverage_state\n", labManifest.CoverageState)
+						}
+					} else {
+						provOK, provMsg := validateProvenance(labManifest.Vulnerability.Provenance)
+						if !provOK {
+							fmt.Printf("    ✗ %s\n", provMsg)
+							allPassed = false
+							cvePassed = false
+						} else {
+							fmt.Printf("    ✓ %s\n", provMsg)
+						}
+					}
+
+					// Validate verification claims against coverage_state
+					if labManifest.Vulnerability.Verification != nil {
+						verOK, verMsg := verifyClaimsAgainstCoverage(
+							labManifest.CoverageState,
+							labManifest.Vulnerability.Verification,
+						)
+						if !verOK {
+							fmt.Printf("    ✗ %s\n", verMsg)
+							allPassed = false
+							cvePassed = false
+						} else {
+							fmt.Printf("    ✓ %s\n", verMsg)
+						}
+					} else if labManifest.CoverageState == manifest.CoveragePublished {
+						fmt.Printf("    ✗ coverage_state is 'published' but verification section is missing\n")
+						allPassed = false
+						cvePassed = false
+					}
 				}
-				if labManifest.Vulnerability != nil && labManifest.Vulnerability.Provenance == nil {
-					fmt.Printf("    ✗ vulnerability section missing provenance\n")
+
+				if labManifest.Vulnerability == nil {
+					fmt.Printf("    ✗ CVE specified but vulnerability section is missing\n")
 					allPassed = false
+					cvePassed = false
 				}
 
 				// Check references.yaml exists for CVE labs
@@ -151,8 +210,13 @@ func validateTemplate(templatePath string) {
 				if _, err := os.Stat(refsPath); os.IsNotExist(err) {
 					fmt.Printf("    ✗ references.yaml missing for CVE lab\n")
 					allPassed = false
+					cvePassed = false
 				} else {
 					fmt.Printf("    ✓ references.yaml present\n")
+				}
+
+				if cvePassed {
+					fmt.Printf("    ✓ All CVE catalog field checks passed\n")
 				}
 			}
 		}
@@ -208,6 +272,24 @@ func validateTemplate(templatePath string) {
 				} else {
 					fmt.Println("  ✓ compose.yaml passes safety policies")
 				}
+
+				// Check agreement between manifest endpoints and resolved Compose configuration
+				if labManifest != nil && len(labManifest.Endpoints) > 0 {
+					fmt.Println("\n  Checking endpoint/compose agreement...")
+					endpointOK := checkEndpointComposeAgreement(labManifest, project)
+					if !endpointOK {
+						allPassed = false
+					}
+				}
+
+				// Check agreement between declared network restrictions and effective Compose config
+				if labManifest != nil {
+					fmt.Println("\n  Checking network restriction agreement...")
+					netOK := checkNetworkAgreement(labManifest, project)
+					if !netOK {
+						allPassed = false
+					}
+				}
 			}
 		}
 	}
@@ -237,4 +319,150 @@ func validateTemplate(templatePath string) {
 		fmt.Println("✗ Template validation failed")
 		os.Exit(1)
 	}
+}
+
+// validateCVSSVector checks that a severity string contains a valid CVSS v3.1
+// vector with consistent metrics. It does not compute the exact score but
+// verifies the vector format and that impact metrics use valid values.
+func validateCVSSVector(severity string) (bool, string) {
+	// Extract CVSS vector from severity string like "7.5 (CVSS:3.1/AV:N/AC:L/...)"
+	vectorMatch := regexp.MustCompile(`CVSS:3\.1/(.+)\)`).FindStringSubmatch(severity)
+	if len(vectorMatch) < 2 {
+		return false, "severity does not contain a valid CVSS v3.1 vector"
+	}
+	vector := vectorMatch[1]
+
+	metrics := make(map[string]string)
+	for _, part := range strings.Split(vector, "/") {
+		kv := strings.SplitN(part, ":", 2)
+		if len(kv) == 2 {
+			metrics[kv[0]] = kv[1]
+		}
+	}
+
+	validImpact := map[string]bool{"N": true, "L": true, "H": true}
+	for _, metric := range []string{"C", "I", "A"} {
+		if val, ok := metrics[metric]; ok && !validImpact[val] {
+			return false, fmt.Sprintf("invalid %s impact value '%s' in CVSS vector", metric, val)
+		}
+	}
+
+	// Basic score presence check
+	scoreMatch := regexp.MustCompile(`^([0-9]+\.[0-9]+)`).FindStringSubmatch(severity)
+	if len(scoreMatch) < 2 {
+		return false, "severity does not include a numeric score"
+	}
+	if _, err := strconv.ParseFloat(scoreMatch[1], 64); err != nil {
+		return false, fmt.Sprintf("invalid CVSS score '%s': %v", scoreMatch[1], err)
+	}
+
+	return true, "CVSS vector format is valid"
+}
+
+// validateProvenance rejects placeholder or zero-value provenance data.
+func validateProvenance(prov *manifest.Provenance) (bool, string) {
+	if prov.ImageDigest == "" || prov.ImageDigest == "sha256:placeholder" || prov.ImageDigest == "sha256:unverified" {
+		return false, "provenance.image_digest is a placeholder or empty"
+	}
+	if !regexp.MustCompile(`^sha256:[a-f0-9]{64}$`).MatchString(prov.ImageDigest) {
+		return false, "provenance.image_digest is not a valid SHA-256 digest"
+	}
+	if prov.SourceRevision == "" || prov.SourceRevision == "placeholder" || prov.SourceRevision == "unverified" {
+		return false, "provenance.source_revision is a placeholder or empty"
+	}
+	if prov.VerificationDate == "" {
+		return false, "provenance.verification_date is empty"
+	}
+	if prov.VerifiedBy == "" {
+		return false, "provenance.verified_by is empty"
+	}
+	return true, "provenance data is present and non-placeholder"
+}
+
+// verifyClaimsAgainstCoverage checks that verification claims are consistent
+// with the declared coverage_state.
+func verifyClaimsAgainstCoverage(state manifest.CoverageState, ver *manifest.Verification) (bool, string) {
+	if state == manifest.CoveragePublished {
+		if !ver.AffectedVersionConfirmed {
+			return false, "coverage_state is 'published' but affected_version_confirmed is false"
+		}
+		if !ver.FixedVersionConfirmed {
+			return false, "coverage_state is 'published' but fixed_version_confirmed is false"
+		}
+		if !ver.ReproductionStepsDocumented {
+			return false, "coverage_state is 'published' but reproduction_steps_documented is false"
+		}
+		return true, "verification claims consistent with 'published' coverage_state"
+	}
+	if state == manifest.CoverageReproducible {
+		if !ver.AffectedVersionConfirmed {
+			return false, "coverage_state is 'reproducible' but affected_version_confirmed is false"
+		}
+		return true, "verification claims consistent with 'reproducible' coverage_state"
+	}
+	if state == manifest.CoverageTriaged {
+		return true, "verification claims consistent with 'triaged' coverage_state"
+	}
+	if state == manifest.CoverageDiscovered {
+		return true, "verification claims consistent with 'discovered' coverage_state"
+	}
+	if state == manifest.CoverageRetired {
+		return true, "verification claims consistent with 'retired' coverage_state"
+	}
+	return false, fmt.Sprintf("unknown coverage_state '%s'", state)
+}
+
+// checkEndpointComposeAgreement verifies that declared endpoints match
+// the resolved Compose service configuration.
+func checkEndpointComposeAgreement(manifest *manifest.Manifest, project *types.Project) bool {
+	allOK := true
+	for _, ep := range manifest.Endpoints {
+		var foundService *types.ServiceConfig
+		for i := range project.Services {
+			if project.Services[i].Name == ep.Service {
+				foundService = &project.Services[i]
+				break
+			}
+		}
+		if foundService == nil {
+			fmt.Printf("    ✗ endpoint '%s' references unknown service '%s'\n", ep.ID, ep.Service)
+			allOK = false
+			continue
+		}
+		found := false
+		for _, port := range foundService.Ports {
+			if uint32(ep.ContainerPort) == port.Target {
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Printf("    ✗ endpoint '%s' declares containerPort %d but service '%s' does not publish it\n",
+				ep.ID, ep.ContainerPort, ep.Service)
+			allOK = false
+		}
+	}
+	if allOK {
+		fmt.Println("    ✓ endpoints agree with resolved Compose configuration")
+	}
+	return allOK
+}
+
+// checkNetworkAgreement verifies that declared network restrictions match
+// the effective Compose configuration.
+func checkNetworkAgreement(manifest *manifest.Manifest, project *types.Project) bool {
+	if manifest.Runtime.Network.Outbound != "restricted" {
+		fmt.Println("    ✓ no restricted outbound requirement; skipping network agreement check")
+		return true
+	}
+
+	// For restricted outbound, Compose networks should be internal
+	for _, net := range project.Networks {
+		if net.Internal {
+			fmt.Println("    ✓ restricted outbound matches internal Compose network")
+			return true
+		}
+	}
+	fmt.Println("    ✗ manifest declares restricted outbound but no Compose network is internal")
+	return false
 }

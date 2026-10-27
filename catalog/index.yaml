@@ -38,4 +38,4 @@ labs:
     cve: CVE-2026-34486
     vendor: Apache Software Foundation
     product: Apache Tomcat
-    coverage_state: published
+    coverage_state: triaged
