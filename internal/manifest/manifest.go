@@ -25,6 +25,8 @@ type Manifest struct {
 	Runtime       Runtime           `yaml:"runtime"`
 	Endpoints     []Endpoint        `yaml:"endpoints"`
 	Checks        Checks            `yaml:"checks"`
+	CoverageState CoverageState     `yaml:"coverage_state,omitempty"`
+	Vulnerability *Vulnerability    `yaml:"vulnerability,omitempty"`
 	Environment   map[string]string `yaml:"environment,omitempty"`
 	Secrets       []Secret          `yaml:"secrets,omitempty"`
 	References    []Reference       `yaml:"references,omitempty"`
@@ -32,15 +34,72 @@ type Manifest struct {
 
 // Metadata describes the lab.
 type Metadata struct {
-	ID          string   `yaml:"id"`
-	Name        string   `yaml:"name"`
-	Version     string   `yaml:"version"`
-	Description string   `yaml:"description"`
-	Category    string   `yaml:"category"`
-	Difficulty  string   `yaml:"difficulty"`
-	License     string   `yaml:"license"`
-	Author      string   `yaml:"author,omitempty"`
-	Tags        []string `yaml:"tags,omitempty"`
+	ID               string   `yaml:"id"`
+	Name             string   `yaml:"name"`
+	Version          string   `yaml:"version"`
+	Description      string   `yaml:"description"`
+	Category         string   `yaml:"category"`
+	Difficulty       string   `yaml:"difficulty"`
+	License          string   `yaml:"license"`
+	Author           string   `yaml:"author,omitempty"`
+	Tags             []string `yaml:"tags,omitempty"`
+	CVE              string   `yaml:"cve,omitempty"`
+	Vendor           string   `yaml:"vendor,omitempty"`
+	Product          string   `yaml:"product,omitempty"`
+	AffectedVersions []string `yaml:"affected_versions,omitempty"`
+	FixedVersions    []string `yaml:"fixed_versions,omitempty"`
+}
+
+// CoverageState tracks catalog coverage for a lab environment.
+type CoverageState string
+
+const (
+	CoverageDiscovered   CoverageState = "discovered"
+	CoverageTriaged      CoverageState = "triaged"
+	CoverageReproducible CoverageState = "reproducible"
+	CoveragePublished    CoverageState = "published"
+	CoverageRetired      CoverageState = "retired"
+)
+
+// Vulnerability describes vulnerability-specific information for CVE-driven labs.
+type Vulnerability struct {
+	Severity       string          `yaml:"severity,omitempty"`
+	SeveritySource string          `yaml:"severity_source,omitempty"`
+	References     []VulnReference `yaml:"references,omitempty"`
+	Provenance     *Provenance     `yaml:"provenance,omitempty"`
+	Verification   *Verification   `yaml:"verification,omitempty"`
+	Safety         *Safety         `yaml:"safety,omitempty"`
+}
+
+// VulnReference describes an advisory or database reference.
+type VulnReference struct {
+	Title       string `yaml:"title"`
+	URL         string `yaml:"url"`
+	Description string `yaml:"description,omitempty"`
+}
+
+// Provenance describes provenance information for the lab environment.
+type Provenance struct {
+	ImageDigest      string `yaml:"image_digest,omitempty"`
+	SourceRevision   string `yaml:"source_revision,omitempty"`
+	VerificationDate string `yaml:"verification_date,omitempty"`
+	VerifiedBy       string `yaml:"verified_by,omitempty"`
+}
+
+// Verification describes checks that confirm the documented lab state.
+type Verification struct {
+	AffectedVersionConfirmed    bool   `yaml:"affected_version_confirmed,omitempty"`
+	FixedVersionConfirmed       bool   `yaml:"fixed_version_confirmed,omitempty"`
+	ReproductionStepsDocumented bool   `yaml:"reproduction_steps_documented,omitempty"`
+	Notes                       string `yaml:"notes,omitempty"`
+}
+
+// Safety describes network restrictions, isolation, and resource limits.
+type Safety struct {
+	NetworkIsolation bool   `yaml:"network_isolation,omitempty"`
+	NoPublicExposure bool   `yaml:"no_public_exposure,omitempty"`
+	ResourceLimits   bool   `yaml:"resource_limits,omitempty"`
+	CleanupBehavior  string `yaml:"cleanup_behavior,omitempty"`
 }
 
 // Learning describes educational content.
@@ -195,6 +254,8 @@ func (m *Manifest) MarshalJSON() ([]byte, error) {
 		Runtime       Runtime           `json:"runtime"`
 		Endpoints     []Endpoint        `json:"endpoints"`
 		Checks        Checks            `json:"checks"`
+		CoverageState CoverageState     `json:"coverage_state,omitempty"`
+		Vulnerability *Vulnerability    `json:"vulnerability,omitempty"`
 		Environment   map[string]string `json:"environment,omitempty"`
 		Secrets       []Secret          `json:"secrets,omitempty"`
 		References    []Reference       `json:"references,omitempty"`
@@ -206,6 +267,8 @@ func (m *Manifest) MarshalJSON() ([]byte, error) {
 		Runtime:       m.Runtime,
 		Endpoints:     m.Endpoints,
 		Checks:        m.Checks,
+		CoverageState: m.CoverageState,
+		Vulnerability: m.Vulnerability,
 		Environment:   m.Environment,
 		Secrets:       m.Secrets,
 		References:    m.References,

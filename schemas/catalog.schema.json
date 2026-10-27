@@ -27,7 +27,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^[a-z0-9]+(?:/[a-z0-9-]+)+$",
+            "pattern": "^[a-zA-Z0-9]+(?:/[a-zA-Z0-9-]+)+$",
             "description": "Unique lab identifier"
           },
           "name": {
@@ -100,6 +100,24 @@
           "deprecatedReason": {
             "type": "string",
             "description": "Reason for deprecation (if deprecated)"
+          },
+          "cve": {
+            "type": "string",
+            "pattern": "^CVE-\\d{4}-\\d{4,}$",
+            "description": "CVE identifier associated with this lab (if any)"
+          },
+          "vendor": {
+            "type": "string",
+            "description": "Software vendor"
+          },
+          "product": {
+            "type": "string",
+            "description": "Affected product name"
+          },
+          "coverage_state": {
+            "type": "string",
+            "enum": ["discovered", "triaged", "reproducible", "published", "retired"],
+            "description": "Catalog coverage state for this lab"
           }
         }
       }

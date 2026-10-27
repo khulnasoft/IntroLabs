@@ -17,3 +17,25 @@ labs:
       - arm64
     license: Apache-2.0
     author: "LabKit Project"
+
+  - id: apache/tomcat/CVE-2026-34486
+    name: "Apache Tomcat Missing Encryption (CVE-2026-34486)"
+    version: "1.0.0"
+    category: cryptography
+    difficulty: intermediate
+    path: catalog/apache/tomcat/CVE-2026-34486
+    description: "Educational lab for Apache Tomcat missing encryption of sensitive data (CVE-2026-34486)"
+    tags:
+      - cve
+      - tomcat
+      - cryptography
+      - apache
+    architectures:
+      - amd64
+      - arm64
+    license: Apache-2.0
+    author: "LabKit Project"
+    cve: CVE-2026-34486
+    vendor: Apache Software Foundation
+    product: Apache Tomcat
+    coverage_state: published

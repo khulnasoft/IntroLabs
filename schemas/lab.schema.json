@@ -39,7 +39,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^[a-z0-9]+(?:/[a-z0-9-]+)+$",
+          "pattern": "^[a-zA-Z0-9]+(?:/[a-zA-Z0-9-]+)+$",
           "description": "Unique identifier for the lab (e.g., web/intro-lab)"
         },
         "name": {
@@ -95,6 +95,33 @@
             "type": "string"
           },
           "description": "Optional tags for discovery"
+        },
+        "cve": {
+          "type": "string",
+          "pattern": "^CVE-\\d{4}-\\d{4,}$",
+          "description": "CVE identifier associated with this lab (if any)"
+        },
+        "vendor": {
+          "type": "string",
+          "description": "Software vendor"
+        },
+        "product": {
+          "type": "string",
+          "description": "Affected product name"
+        },
+        "affected_versions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Verified affected software versions"
+        },
+        "fixed_versions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Versions containing the fix"
         }
       }
     },
@@ -304,6 +331,117 @@
           "description": {
             "type": "string",
             "description": "Description of what this secret is for"
+          }
+        }
+      }
+    },
+    "coverage_state": {
+      "type": "string",
+      "enum": ["discovered", "triaged", "reproducible", "published", "retired"],
+      "description": "Catalog coverage state for this lab environment"
+    },
+    "vulnerability": {
+      "type": "object",
+      "description": "Vulnerability-specific information for CVE-driven labs",
+      "properties": {
+        "severity": {
+          "type": "string",
+          "description": "CVSS score and version with source (e.g., '7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N)')"
+        },
+        "severity_source": {
+          "type": "string",
+          "enum": ["nvd", "vendor_advisory", "github_advisory", "other"],
+          "description": "Source of the severity assessment"
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["title", "url"],
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "Title of the reference"
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "URL to the reference"
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional description of the reference"
+              }
+            }
+          },
+          "description": "Official advisories and vulnerability database entries"
+        },
+        "provenance": {
+          "type": "object",
+          "description": "Provenance information for the lab environment",
+          "properties": {
+            "image_digest": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$",
+              "description": "Container image digest"
+            },
+            "source_revision": {
+              "type": "string",
+              "description": "Source code revision used to build the lab"
+            },
+            "verification_date": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Date the lab was verified to reproduce the CVE"
+            },
+            "verified_by": {
+              "type": "string",
+              "description": "Person or system that verified the lab"
+            }
+          }
+        },
+        "verification": {
+          "type": "object",
+          "description": "Checks that confirm the documented lab state",
+          "properties": {
+            "affected_version_confirmed": {
+              "type": "boolean",
+              "description": "Whether the affected version was confirmed vulnerable"
+            },
+            "fixed_version_confirmed": {
+              "type": "boolean",
+              "description": "Whether the fixed version was confirmed not vulnerable"
+            },
+            "reproduction_steps_documented": {
+              "type": "boolean",
+              "description": "Whether reproduction steps are documented"
+            },
+            "notes": {
+              "type": "string",
+              "description": "Additional verification notes"
+            }
+          }
+        },
+        "safety": {
+          "type": "object",
+          "description": "Network restrictions, isolation, and resource limits",
+          "properties": {
+            "network_isolation": {
+              "type": "boolean",
+              "description": "Whether the lab uses network isolation"
+            },
+            "no_public_exposure": {
+              "type": "boolean",
+              "description": "Whether ports are bound to loopback only"
+            },
+            "resource_limits": {
+              "type": "boolean",
+              "description": "Whether resource limits are enforced"
+            },
+            "cleanup_behavior": {
+              "type": "string",
+              "description": "Description of cleanup behavior"
+            }
           }
         }
       }

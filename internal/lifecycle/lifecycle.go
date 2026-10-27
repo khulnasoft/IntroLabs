@@ -490,7 +490,21 @@ func loadComposeProject(composePath string) (*types.Project, error) {
 		},
 		WorkingDir: filepath.Dir(composePath),
 	}, func(o *loader.Options) {
-		o.SetProjectName(filepath.Base(filepath.Dir(composePath)), true)
+		projectName := filepath.Base(filepath.Dir(composePath))
+		// Docker Compose project names must be lowercase alphanumeric,
+		// hyphens, and underscores, starting with a letter or number.
+		// Replace invalid characters with hyphens.
+		projectName = strings.Map(func(r rune) rune {
+			if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+				return r
+			}
+			return '-'
+		}, projectName)
+		// Ensure it starts with a letter or number
+		if len(projectName) > 0 && projectName[0] < '0' {
+			projectName = "lab" + projectName
+		}
+		o.SetProjectName(projectName, true)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("parsing compose file: %w", err)
