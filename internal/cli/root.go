@@ -29,11 +29,14 @@ var (
 	lifecycleMgr   *lifecycle.Manager
 	stateStore     *state.Store
 	packager       *packaging.Packager
+	rootDir        string
 )
 
 // Setup initializes shared dependencies for all CLI commands.
-func Setup(rootDir string) error {
+func Setup(rd string) error {
 	var err error
+
+	rootDir = rd
 
 	stateStore, err = state.NewStore(state.DefaultStateDir())
 	if err != nil {
