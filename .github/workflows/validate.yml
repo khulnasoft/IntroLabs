@@ -1,0 +1,43 @@
+name: Validate Templates
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Check formatting
+      run: gofmt -l . || (echo "Code is not formatted; run gofmt -w ." && exit 1)
+
+    - name: Vet
+      run: go vet ./...
+
+    - name: Build labctl
+      run: go build -o labctl ./cmd/labctl
+
+    - name: Validate all templates
+      run: |
+        for template in templates/*/*/; do
+          if [ -d "$template" ]; then
+            echo "Validating $template"
+            ./labctl validate "$template"
+          fi
+        done
+
+    - name: Validate catalog
+      run: |
+        # Simple YAML syntax check
+        python3 -c "import yaml; yaml.safe_load(open('catalog/index.yaml'))"

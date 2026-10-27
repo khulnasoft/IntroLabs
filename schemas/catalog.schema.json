@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://labkit-project.org/schemas/catalog.schema.json",
+  "title": "LabKit Catalog Index",
+  "description": "Schema for LabKit catalog index (catalog/index.yaml)",
+  "type": "object",
+  "required": ["version", "labs"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "catalog/v1",
+      "description": "Catalog schema version"
+    },
+    "labs": {
+      "type": "array",
+      "description": "List of available labs",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "category",
+          "difficulty",
+          "path"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:/[a-z0-9-]+)+$",
+            "description": "Unique lab identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable lab name"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?$",
+            "description": "Current version of the lab"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "web",
+              "api",
+              "authentication",
+              "databases",
+              "misconfiguration",
+              "network",
+              "cryptography",
+              "injection",
+              "xss",
+              "csrf",
+              "other"
+            ],
+            "description": "Lab category"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": ["beginner", "intermediate", "advanced", "expert"],
+            "description": "Difficulty level"
+          },
+          "path": {
+            "type": "string",
+            "description": "Relative path to the lab template"
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Searchable tags"
+          },
+          "architectures": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["amd64", "arm64", "arm", "386"]
+            },
+            "description": "Supported architectures"
+          },
+          "license": {
+            "type": "string",
+            "description": "Lab license"
+          },
+          "author": {
+            "type": "string",
+            "description": "Lab author"
+          },
+          "deprecated": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether this lab is deprecated"
+          },
+          "deprecatedReason": {
+            "type": "string",
+            "description": "Reason for deprecation (if deprecated)"
+          }
+        }
+      }
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of last catalog update"
+    }
+  },
+  "additionalProperties": false
+}

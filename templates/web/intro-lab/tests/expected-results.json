@@ -1,0 +1,59 @@
+{
+  "labId": "web/intro-lab",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "name": "Container Running",
+      "description": "Verifies that the main application container is running",
+      "expected": "Container 'labkit-web-intro-lab-app' should be in running state"
+    },
+    {
+      "name": "Port Listening",
+      "description": "Verifies that the application port is listening on loopback",
+      "expected": "Port 8080 should be listening on 127.0.0.1"
+    },
+    {
+      "name": "HTTP Endpoint",
+      "description": "Verifies that the HTTP endpoint responds with 200",
+      "expected": "GET http://127.0.0.1:8080/ should return HTTP 200"
+    },
+    {
+      "name": "Health Check",
+      "description": "Verifies that the health check endpoint responds",
+      "expected": "GET http://127.0.0.1:8080/health should return HTTP 200"
+    },
+    {
+      "name": "Profile Endpoint",
+      "description": "Verifies that the profile endpoint is accessible",
+      "expected": "GET http://127.0.0.1:8080/profile?id=1 should return HTTP 200"
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "web-ui",
+      "url": "http://127.0.0.1:8080",
+      "protocol": "http",
+      "expectedStatus": 200
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "type": "Reflected XSS",
+      "location": "Search feature (/)",
+      "severity": "medium",
+      "educational": true
+    },
+    {
+      "type": "IDOR",
+      "location": "Profile endpoint (/profile)",
+      "severity": "high",
+      "educational": true
+    },
+    {
+      "type": "Stored XSS",
+      "location": "Comments feature (/comment)",
+      "severity": "high",
+      "educational": true
+    }
+  ]
+}

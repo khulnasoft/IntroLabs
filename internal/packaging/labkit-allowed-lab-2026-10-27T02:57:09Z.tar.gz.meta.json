@@ -1,0 +1,19 @@
+{
+  "templateID": "test/allowed-lab",
+  "version": "1.0.0",
+  "name": "Allowed",
+  "category": "web",
+  "createdAt": "2026-10-27T02:57:09Z",
+  "labSchema": "labkit/v1",
+  "files": [
+    ".env.example",
+    "LICENSE",
+    "README.md",
+    "compose.yaml",
+    "lab.yaml",
+    "lessons/objectives.md",
+    "tests/smoke.sh"
+  ],
+  "checksumSHA256": "0c26f8bab891e546d4d9ad916c96e2775cb1899a9822ac6fad36cecdcabf1e4e",
+  "packager": "labkit-packager v1"
+}

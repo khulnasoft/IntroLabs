@@ -1,0 +1,6 @@
+services:
+  app:
+    image: alpine:3.18
+    pid: host
+    ports:
+      - "127.0.0.1:8080:8080"

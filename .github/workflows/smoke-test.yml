@@ -1,0 +1,70 @@
+name: Template Smoke Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        lab:
+          - web/intro-lab
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build labctl
+      run: |
+        go build -o labctl ./cmd/labctl
+
+    - name: Start lab
+      run: |
+        cd "templates/${{ matrix.lab }}"
+        docker compose up -d
+
+    - name: Wait for services to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://127.0.0.1:8080/health; do sleep 2; done'
+
+    - name: Run smoke test
+      run: |
+        cd "templates/${{ matrix.lab }}"
+        ./tests/smoke.sh
+
+    - name: Collect logs
+      if: always()
+      run: |
+        cd "templates/${{ matrix.lab }}"
+        docker compose logs > /tmp/smoke-test-logs.txt
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: smoke-test-logs-${{ matrix.lab }}
+        path: /tmp/smoke-test-logs.txt
+
+    - name: Stop lab
+      if: always()
+      run: |
+        cd "templates/${{ matrix.lab }}"
+        docker compose down -v
+
+    - name: Verify cleanup
+      run: |
+        # Ensure no containers are left running
+        if [ $(docker ps -q | wc -l) -gt 0 ]; then
+          echo "ERROR: Containers still running after cleanup"
+          docker ps
+          exit 1
+        fi

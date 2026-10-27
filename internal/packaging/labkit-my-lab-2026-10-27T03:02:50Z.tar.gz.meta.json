@@ -1,0 +1,13 @@
+{
+  "templateID": "test/checksum-lab",
+  "version": "1.0.0",
+  "name": "Checksum",
+  "category": "web",
+  "createdAt": "2026-10-27T03:02:50Z",
+  "labSchema": "labkit/v1",
+  "files": [
+    "lab.yaml"
+  ],
+  "checksumSHA256": "f4492e4e62a9f9dc8ebe805929d3e3f28134d4542d0879fa115c77da7fb1d055",
+  "packager": "labkit-packager v1"
+}

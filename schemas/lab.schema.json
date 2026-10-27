@@ -1,0 +1,336 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://labkit-project.org/schemas/lab.schema.json",
+  "title": "LabKit Lab Manifest",
+  "description": "Schema for LabKit environment template manifests (lab.yaml)",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "metadata",
+    "learning",
+    "runtime",
+    "endpoints",
+    "checks"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "labkit/v1",
+      "description": "The schema version for this manifest"
+    },
+    "kind": {
+      "type": "string",
+      "const": "Environment",
+      "description": "The kind of resource described by this manifest"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Metadata about the lab environment",
+      "required": [
+        "id",
+        "name",
+        "version",
+        "description",
+        "category",
+        "difficulty",
+        "license"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:/[a-z0-9-]+)+$",
+          "description": "Unique identifier for the lab (e.g., web/intro-lab)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Human-readable name of the lab"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?$",
+          "description": "Semantic version of the lab template"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Brief description of the lab"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "web",
+            "api",
+            "authentication",
+            "databases",
+            "misconfiguration",
+            "network",
+            "cryptography",
+            "injection",
+            "xss",
+            "csrf",
+            "other"
+          ],
+          "description": "Primary category of the lab"
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["beginner", "intermediate", "advanced", "expert"],
+          "description": "Difficulty level of the lab"
+        },
+        "license": {
+          "type": "string",
+          "description": "License for the lab template and materials"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author or organization name"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional tags for discovery"
+        }
+      }
+    },
+    "learning": {
+      "type": "object",
+      "description": "Learning objectives and educational content",
+      "required": ["objectives"],
+      "properties": {
+        "objectives": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Learning objectives for this lab"
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Prerequisites for completing this lab"
+        },
+        "estimatedTime": {
+          "type": "string",
+          "pattern": "^\\d+[mhd]$",
+          "description": "Estimated time to complete (e.g., 30m, 2h, 1d)"
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "description": "Runtime configuration and requirements",
+      "required": [
+        "engine",
+        "composeFile",
+        "architectures",
+        "resources",
+        "network"
+      ],
+      "properties": {
+        "engine": {
+          "type": "string",
+          "const": "docker-compose",
+          "description": "Container orchestration engine"
+        },
+        "composeFile": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9._-]+\\.ya?ml$",
+          "description": "Name of the Docker Compose file"
+        },
+        "architectures": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["amd64", "arm64", "arm", "386"]
+          },
+          "description": "Supported CPU architectures"
+        },
+        "resources": {
+          "type": "object",
+          "required": ["memoryMiB"],
+          "properties": {
+            "memoryMiB": {
+              "type": "integer",
+              "minimum": 128,
+              "description": "Minimum memory requirement in MiB"
+            },
+            "cpu": {
+              "type": "number",
+              "minimum": 0.1,
+              "description": "Minimum CPU cores required"
+            },
+            "diskMiB": {
+              "type": "integer",
+              "minimum": 100,
+              "description": "Minimum disk space in MiB"
+            }
+          }
+        },
+        "network": {
+          "type": "object",
+          "required": ["exposure"],
+          "properties": {
+            "exposure": {
+              "type": "string",
+              "enum": ["loopback", "local", "public"],
+              "description": "Network exposure level"
+            },
+            "outbound": {
+              "type": "string",
+              "enum": ["restricted", "unrestricted"],
+              "description": "Outbound network access policy"
+            }
+          }
+        },
+        "dockerVersion": {
+          "type": "string",
+          "description": "Minimum Docker version required"
+        },
+        "composeVersion": {
+          "type": "string",
+          "description": "Minimum Docker Compose version required"
+        }
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Declared service endpoints",
+      "items": {
+        "type": "object",
+        "required": ["id", "service", "protocol", "containerPort", "hostBinding"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$",
+            "description": "Unique identifier for this endpoint"
+          },
+          "service": {
+            "type": "string",
+            "description": "Docker Compose service name"
+          },
+          "protocol": {
+            "type": "string",
+            "enum": ["http", "https", "tcp", "udp"],
+            "description": "Protocol for this endpoint"
+          },
+          "containerPort": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535,
+            "description": "Port inside the container"
+          },
+          "hostBinding": {
+            "type": "string",
+            "pattern": "^(127\\.0\\.0\\.1|0\\.0\\.0\\.0|::1)$",
+            "description": "Host IP address to bind to"
+          },
+          "path": {
+            "type": "string",
+            "description": "Optional path prefix for HTTP/HTTPS endpoints"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of this endpoint"
+          }
+        }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "description": "Validation and health checks",
+      "required": ["smokeTest"],
+      "properties": {
+        "smokeTest": {
+          "type": "string",
+          "description": "Path to smoke test script relative to template root"
+        },
+        "readinessCheck": {
+          "type": "string",
+          "description": "Path to readiness check script"
+        },
+        "healthCheck": {
+          "type": "object",
+          "description": "Health check configuration",
+          "properties": {
+            "endpoint": {
+              "type": "string",
+              "format": "uri",
+              "description": "HTTP endpoint to check"
+            },
+            "expectedStatus": {
+              "type": "integer",
+              "default": 200,
+              "description": "Expected HTTP status code"
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 30,
+              "description": "Timeout in seconds"
+            }
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "description": "Environment variables for the lab",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "secrets": {
+      "type": "array",
+      "description": "Required secrets (for documentation only, never store actual values)",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Secret name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of what this secret is for"
+          }
+        }
+      }
+    },
+    "references": {
+      "type": "array",
+      "description": "External references and documentation",
+      "items": {
+        "type": "object",
+        "required": ["title", "url"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title of the reference"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the reference"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

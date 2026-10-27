@@ -1,0 +1,9 @@
+networks:
+  external-net:
+    external: true
+
+services:
+  app:
+    image: alpine:3.18
+    networks:
+      - external-net

@@ -1,0 +1,15 @@
+{
+  "templateID": "test/verify-lab",
+  "version": "1.0.0",
+  "name": "Verify",
+  "category": "web",
+  "createdAt": "2026-10-27T03:02:50Z",
+  "labSchema": "labkit/v1",
+  "files": [
+    "compose.yaml",
+    "lab.yaml",
+    "tests/smoke.sh"
+  ],
+  "checksumSHA256": "df7f7fb80df5a8c7e747e43f61246c48c98cdf688462aff950cb3a6a8a175726",
+  "packager": "labkit-packager v1"
+}

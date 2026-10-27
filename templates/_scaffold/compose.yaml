@@ -1,0 +1,77 @@
+# Docker Compose configuration for the lab
+# This file defines the services, networks, and volumes for the lab environment
+#
+# IMPORTANT: Always bind ports to 127.0.0.1 for local-only access
+# Avoid privileged containers and host filesystem mounts unless necessary
+# Pin images to specific versions or digests for reproducibility
+
+services:
+  app:
+    # Replace with your actual image
+    # Use specific tags for reproducibility
+    image: your-image:1.0.0
+    # For production, consider using digests:
+    # image: your-image:1.0.0@sha256:actual-digest-here
+
+    container_name: labkit-${LAB_ID:-scaffold}-app
+
+    # Bind to loopback only for security
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    # Resource limits (recommended)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+    # Health check (if supported by the application)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Environment variables
+    environment:
+      - LAB_ENV=development
+      # Add other required environment variables here
+
+    # Networks
+    networks:
+      - lab-network
+
+    # Volumes (if needed for data persistence)
+    # volumes:
+    #   - lab-data:/path/in/container
+
+    # Security options (recommended)
+    # read_only: true
+    # tmpfs:
+    #   - /tmp
+
+  # Add additional services as needed (databases, caches, etc.)
+  # database:
+  #   image: postgres:15@sha256:digest
+  #   container_name: labkit-${LAB_ID:-scaffold}-db
+  #   environment:
+  #     - POSTGRES_PASSWORD=example
+  #   networks:
+  #     - lab-network
+  #   # Do not publish database ports to host unless required
+  #   # ports:
+  #   #   - "127.0.0.1:5432:5432"
+
+networks:
+  lab-network:
+    driver: bridge
+    internal: false  # Set to true if no outbound access is needed
+
+# volumes:
+#   lab-data:
+#     driver: local

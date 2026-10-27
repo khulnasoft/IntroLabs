@@ -1,0 +1,21 @@
+{
+  "templateID": "test/my-lab",
+  "version": "1.0.0",
+  "name": "Test Lab",
+  "category": "web",
+  "createdAt": "2026-10-27T02:55:35Z",
+  "labSchema": "labkit/v1",
+  "files": [
+    ".env.example",
+    "LICENSE",
+    "README.md",
+    "compose.yaml",
+    "lab.yaml",
+    "lessons/concepts.md",
+    "lessons/objectives.md",
+    "lessons/remediation.md",
+    "tests/smoke.sh"
+  ],
+  "checksumSHA256": "83dc21ab5d091ae5955fd149c77cd6f3f3ee21b9947a6d8d98db41ae56ff877e",
+  "packager": "labkit-packager v1"
+}

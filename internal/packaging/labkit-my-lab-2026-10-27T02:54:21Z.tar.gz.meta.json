@@ -1,0 +1,21 @@
+{
+  "templateID": "",
+  "version": "",
+  "name": "",
+  "category": "",
+  "createdAt": "2026-10-27T02:54:21Z",
+  "labSchema": "",
+  "files": [
+    ".env.example",
+    "LICENSE",
+    "README.md",
+    "compose.yaml",
+    "lab.yaml",
+    "lessons/concepts.md",
+    "lessons/objectives.md",
+    "lessons/remediation.md",
+    "tests/smoke.sh"
+  ],
+  "checksumSHA256": "c8f8dadc5099a91e882d32269b117af03deaf0a0a26679f5fd1939701558ae9d",
+  "packager": "labkit-packager v1"
+}

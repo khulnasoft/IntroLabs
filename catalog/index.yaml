@@ -1,0 +1,19 @@
+version: catalog/v1
+lastUpdated: "2026-10-27T00:00:00Z"
+labs:
+  - id: web/intro-lab
+    name: "Introduction to Web Security"
+    version: "1.0.0"
+    category: web
+    difficulty: beginner
+    path: templates/web/intro-lab
+    description: "A local learning environment for web security fundamentals"
+    tags:
+      - web
+      - security
+      - beginner
+    architectures:
+      - amd64
+      - arm64
+    license: Apache-2.0
+    author: "LabKit Project"

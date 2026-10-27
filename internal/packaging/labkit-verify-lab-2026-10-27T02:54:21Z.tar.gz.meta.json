@@ -1,0 +1,15 @@
+{
+  "templateID": "",
+  "version": "",
+  "name": "",
+  "category": "",
+  "createdAt": "2026-10-27T02:54:21Z",
+  "labSchema": "",
+  "files": [
+    "compose.yaml",
+    "lab.yaml",
+    "tests/smoke.sh"
+  ],
+  "checksumSHA256": "5c129aa5bda36cb7a1efb8ce1dfbe39db14b19ebd0e9a434224513f0552ff6e3",
+  "packager": "labkit-packager v1"
+}

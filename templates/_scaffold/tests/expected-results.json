@@ -1,0 +1,30 @@
+{
+  "labId": "category/lab-name",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "name": "Container Running",
+      "description": "Verifies that the main application container is running",
+      "expected": "Container 'labkit-scaffold-app' should be in running state"
+    },
+    {
+      "name": "Port Listening",
+      "description": "Verifies that the application port is listening on loopback",
+      "expected": "Port 8080 should be listening on 127.0.0.1"
+    },
+    {
+      "name": "HTTP Endpoint",
+      "description": "Verifies that the HTTP endpoint responds with 200",
+      "expected": "GET http://127.0.0.1:8080/ should return HTTP 200"
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "web-ui",
+      "url": "http://127.0.0.1:8080",
+      "protocol": "http",
+      "expectedStatus": 200
+    }
+  ],
+  "notes": "This is a template - replace with actual expected results for your lab"
+}

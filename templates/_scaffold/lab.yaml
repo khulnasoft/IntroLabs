@@ -1,0 +1,69 @@
+schemaVersion: "labkit/v1"
+kind: Environment
+
+metadata:
+  id: category/lab-name
+  name: "Lab Name"
+  version: "1.0.0"
+  description: "A brief description of what this lab teaches."
+  category: web
+  difficulty: beginner
+  license: Apache-2.0
+  author: "Your Name or Organization"
+  tags:
+    - security
+    - education
+
+learning:
+  objectives:
+    - First learning objective
+    - Second learning objective
+    - Third learning objective
+  prerequisites:
+    - Basic understanding of the topic
+    - Familiarity with Docker
+  estimatedTime: "30m"
+
+runtime:
+  engine: docker-compose
+  composeFile: compose.yaml
+  architectures:
+    - amd64
+    - arm64
+
+  resources:
+    memoryMiB: 512
+    cpu: 0.5
+    diskMiB: 500
+
+  network:
+    exposure: loopback
+    outbound: restricted
+
+  dockerVersion: "20.10+"
+  composeVersion: "2.0+"
+
+endpoints:
+  - id: web-ui
+    service: app
+    protocol: http
+    containerPort: 8080
+    hostBinding: 127.0.0.1
+    path: /
+    description: "Main application interface"
+
+checks:
+  smokeTest: tests/smoke.sh
+  healthCheck:
+    endpoint: http://127.0.0.1:8080/
+    expectedStatus: 200
+    timeout: 30
+
+environment:
+  # Environment variables for the lab
+  # EXAMPLE_VAR: "value"
+
+references:
+  - title: "Reference Documentation"
+    url: "https://example.com/docs"
+    description: "Additional reading material"

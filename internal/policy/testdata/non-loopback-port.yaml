@@ -1,0 +1,5 @@
+services:
+  app:
+    image: alpine:3.18
+    ports:
+      - "0.0.0.0:8080:8080"

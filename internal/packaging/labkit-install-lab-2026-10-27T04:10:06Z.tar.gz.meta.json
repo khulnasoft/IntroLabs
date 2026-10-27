@@ -1,0 +1,15 @@
+{
+  "templateID": "test/install-lab",
+  "version": "1.0.0",
+  "name": "Install",
+  "category": "web",
+  "createdAt": "2026-10-27T04:10:06Z",
+  "labSchema": "labkit/v1",
+  "files": [
+    "compose.yaml",
+    "lab.yaml",
+    "tests/smoke.sh"
+  ],
+  "checksumSHA256": "66fdacf926a3214b2f66c01aa17eeef663f377544e7b8ce7e1265e0ecf9c0ace",
+  "packager": "labkit-packager v1"
+}

@@ -1,0 +1,77 @@
+schemaVersion: "labkit/v1"
+kind: Environment
+
+metadata:
+  id: web/intro-lab
+  name: "Introduction to Web Security"
+  version: "1.0.0"
+  description: "A simple web application demonstrating common security vulnerabilities including XSS and insecure direct object references."
+  category: web
+  difficulty: beginner
+  license: Apache-2.0
+  author: "LabKit Project"
+  tags:
+    - web
+    - security
+    - xss
+    - idor
+    - beginner
+
+learning:
+  objectives:
+    - Understand reflected Cross-Site Scripting (XSS) vulnerabilities
+    - Learn about Insecure Direct Object References (IDOR)
+    - Practice identifying security issues in web applications
+    - Review input validation and output encoding techniques
+  prerequisites:
+    - Basic understanding of HTML and HTTP
+    - Familiarity with web browsers and developer tools
+    - Knowledge of JavaScript fundamentals
+  estimatedTime: "45m"
+
+runtime:
+  engine: docker-compose
+  composeFile: compose.yaml
+  architectures:
+    - amd64
+    - arm64
+
+  resources:
+    memoryMiB: 256
+    cpu: 0.25
+    diskMiB: 200
+
+  network:
+    exposure: loopback
+    outbound: restricted
+
+  dockerVersion: "20.10+"
+  composeVersion: "2.0+"
+
+endpoints:
+  - id: web-ui
+    service: app
+    protocol: http
+    containerPort: 8080
+    hostBinding: 127.0.0.1
+    path: /
+    description: "Main application interface"
+
+checks:
+  smokeTest: tests/smoke.sh
+  healthCheck:
+    endpoint: http://127.0.0.1:8081/health
+    expectedStatus: 200
+    timeout: 120
+
+environment:
+  APP_ENV: development
+  LOG_LEVEL: debug
+
+references:
+  - title: "OWASP XSS Prevention Cheat Sheet"
+    url: "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+    description: "Comprehensive guide on preventing XSS vulnerabilities"
+  - title: "OWASP Top 10"
+    url: "https://owasp.org/www-project-top-ten/"
+    description: "Top 10 web application security risks"

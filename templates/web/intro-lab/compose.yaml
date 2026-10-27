@@ -1,0 +1,57 @@
+# Docker Compose configuration for Introduction to Web Security lab
+# This lab demonstrates XSS and IDOR vulnerabilities in a simple web application
+#
+# Image pinning: For reproducibility, pin images to immutable digests.
+# To update, run: docker pull python:3.11-slim && docker inspect --format='{{index .RepoDigests 0}}' python:3.11-slim
+# Then replace the image line with the digest reference.
+
+services:
+  app:
+    # Pin to specific version for reproducibility.
+    # To use a digest: image: python:3.11-slim@sha256:<digest>
+    image: python:3.11-slim
+    container_name: labkit-web-intro-lab-app
+
+    ports:
+      - "127.0.0.1:8081:8080"
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+        reservations:
+          memory: 128M
+          cpus: "0.1"
+
+    working_dir: /app
+
+    command: >
+      sh -c "
+        apt-get update && apt-get install -y curl &&
+        pip install flask &&
+        python app.py
+      "
+
+    volumes:
+      - ./app.py:/app/app.py:ro
+
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - LAB_ID=web-intro-lab
+
+    networks:
+      - lab-network
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  lab-network:
+    driver: bridge
+    internal: false
